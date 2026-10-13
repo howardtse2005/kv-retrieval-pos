@@ -19,6 +19,18 @@ MODEL_CANDIDATES = ("qwen3:8b", "llama3.1:8b", "qwen3.5:9b")
 MODEL_FALLBACK = "qwen3:14b"
 NUM_CTX = {75: 4096, 140: 4096, 300: 8192}
 ANSWER_PATTERN = re.compile(r"^ANSWER: ([^\r\n]+)$")
+SYSTEM_PROMPT = (
+    "You are given a list of subject-key-value records.\n"
+    "Each record is formatted as: Subject's key is value.\n"
+    "Answer the question using only the records.\n"
+    "Respond with exactly one line and nothing else, using this format:\n"
+    "ANSWER: <one answer>\n"
+    "Do not provide reasoning, explanation, alternatives, a shortened value, "
+    "full sentences, or additional lines.\n"
+    "For example, 'ANSWER: red-849de079d64e5c97e8e1226372ed8bab', \n" 
+    "not 'ANSWER: Subject_b4c855b2e0409e95f7e033249f5189ad's favorite color is red-849de079d64e5c97e8e1226372ed8bab' or 'ANSWER: red'\n"
+    "ANSWER:"
+)
 
 
 def installed_models() -> set[str]:
@@ -55,14 +67,8 @@ def build_prompt(example: dict[str, Any]) -> str:
     )
     subject, key = example["target_key"]
     return (
-        "You are given a list of subject-key-value records.\n"
-        "Each record is formatted as: Subject's key is value\n\n"
         f"Records:\n{records}\n\n"
-        f"Question: What is {subject}'s {key}?\n\n"
-        "Respond with exactly one line and nothing else, using this format:\n"
-        "ANSWER: <one answer>\n"
-        "Do not provide reasoning, explanation, alternatives, or additional lines.\n"
-        "ANSWER:"
+        f"Question: What is {subject}'s {key}?"
     )
 
 
@@ -107,7 +113,7 @@ def run_model(model: str, examples: list[dict[str, Any]], output: Path,
         with output.open(encoding="utf-8") as handle:
             existing_ids = {json.loads(line)["trial_id"] for line in handle if line.strip()}
     output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("a", encoding="utf-8") as handle:
+    with output.open("w", encoding="utf-8") as handle:
         for example in tqdm(examples, desc=model):
             trial_id = f"{model}::{example['example_id']}"
             if trial_id in existing_ids:
@@ -124,8 +130,15 @@ def run_model(model: str, examples: list[dict[str, Any]], output: Path,
             api_error = None
             started = time.perf_counter()
             try:
-                response = ollama.chat(model=model, messages=[{"role": "user", "content": prompt}],
-                                       options=options, think=False)
+                response = ollama.chat(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt},
+                    ],
+                    options=options,
+                    think=False,
+                )
                 response_text = response["message"]["content"].strip()
             except (ollama.ResponseError, KeyError, ConnectionError, TimeoutError) as exc:
                 api_error = f"{type(exc).__name__}: {exc}"
@@ -143,7 +156,7 @@ def run_model(model: str, examples: list[dict[str, Any]], output: Path,
                 "position_label": example["position_label"],
                 "target_key": example["target_key"],
                 "target_value": example["target_value"],
-                "prompt": prompt,
+                "system_prompt": SYSTEM_PROMPT,
                 "raw_response": response_text,
                 "correct": int(correct),
                 "error_type": error_type,

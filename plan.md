@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This plan describes the construction, execution, and analysis of a controlled experiment investigating whether the position of a target fact within a long context affects an LLM's retrieval accuracy. The experiment uses a synthetic key-value (KV) retrieval paradigm, closely following Liu et al. (2023), but replaces random UUIDs with meaningful subject–key–value triples (e.g., "Bob's date of birth is 29 June 2004"). Two conditions are contrasted: **high similarity** (all KV pairs share the same key type, e.g., date of birth) and **low similarity** (mixed key types: dates, colors, names). Three open-weight models are benchmarked locally via Ollama: **Qwen3-8B**, **Llama-3.1-8B**, and **Qwen3.5-9B** (if available; otherwise Qwen3-14B as a proxy).
+This plan describes the construction, execution, and analysis of a controlled experiment investigating whether the position of a target fact within a long context affects an LLM's retrieval accuracy. The experiment uses a synthetic key-value (KV) retrieval paradigm, closely following Liu et al. (2023), with opaque 128-bit subject identifiers and controlled subject–key–value triples. Two conditions are contrasted: **high similarity** (all KV pairs share the same key type, e.g., date of birth) and **low similarity** (mixed key types: dates, colors, names). Three open-weight models are benchmarked locally via Ollama: **Qwen3-8B**, **Llama-3.1-8B**, and **Qwen3.5-9B** (if available; otherwise Qwen3-14B as a proxy).
 
 The core research question: **Does retrieval accuracy vary as a function of target position, and is this effect modulated by the semantic similarity of surrounding distractors?**
 
@@ -32,7 +32,7 @@ Liu et al. (2023) demonstrated a U-shaped performance curve in long-context retr
 
 ### 3.1 Design Rationale
 
-Following Liu et al. (2023), we use a synthetic KV retrieval task to isolate exact-match retrieval from natural-language reasoning. Unlike Liu et al., who used random UUIDs, we use **meaningful subject–key–value triples** to introduce a controlled manipulation of semantic similarity.
+Following Liu et al. (2023), we use a synthetic KV retrieval task to isolate exact-match retrieval from natural-language reasoning. Unlike Liu et al., who used random UUIDs for values, we retain readable value prefixes while using opaque 128-bit subject IDs and unique 128-bit suffixes to introduce a controlled manipulation of semantic similarity.
 
 **Advantages of meaningful triples:**
 
@@ -72,7 +72,7 @@ Each example consists of:
 ```json
 {
   "ordered_kv_records": [
-    ["Alice", "favorite color", "red"],
+    ["Alice", "favorite color", "red-9f2c7a1b4e8d6035c1a9f0b7e2d4a6c8"],
     ["Bob", "date of birth", "29 June 2004"],
     ["Carol", "pet name", "Fluffy"],
     ...
@@ -88,7 +88,7 @@ Each example consists of:
 
 **Step 1: Generate a pool of subjects.**
 
-- Create 500 unique first names (or randomly generated alphanumeric subject IDs, e.g., "Subject_A7X3") to avoid any prior semantic associations.
+- Create unique opaque subject IDs in the format `Subject_<32 lowercase hexadecimal characters>` to avoid prior semantic associations.
 - For high similarity, all subjects share the same key type.
 - For low similarity, subjects are assigned different key types.
 
@@ -97,20 +97,30 @@ Each example consists of:
 | Key type | Value format | Example |
 |---|---|---|
 | `date of birth` | DD Month YYYY | "29 June 2004" |
-| `favorite color` | Single color word | "red" |
-| `pet name` | Capitalized name | "Fluffy" |
-| `phone number` | 10-digit string | "555-0123" |
-| `employee ID` | 6-character alphanumeric | "A7X3B9" |
+| `favorite color` | Color word + 128-bit hex suffix | "red-9f... (32 hex characters)" |
+| `pet name` | Pet name + 128-bit hex suffix | "Fluffy-a1... (32 hex characters)" |
+| `phone number` | Phone number + 128-bit hex suffix | "555-0100-4c... (32 hex characters)" |
+| `employee ID` | Employee ID + 128-bit hex suffix | "A7X3B9-e7... (32 hex characters)" |
 
-For **high similarity**, all KV pairs use `date of birth` with distinct dates.
-For **low similarity**, KV pairs cycle through the above key types, with each subject assigned a unique key type.
+For **high similarity**, all KV pairs use one key type with distinct values;
+the key type rotates across examples so all 100 key types are represented.
+Non-date values retain their readable prefixes and append the unique suffix.
+Each non-date key has exactly three reusable base values. For example,
+favorite color uses `red`, `purple`, and `green` before the suffix.
+In low-similarity datasets, suffixes are omitted: size 75 uses 75 categories,
+size 140 uses all 100 categories with at most two records per category, and
+size 300 uses all 100 categories exactly three times. High-similarity datasets
+retain the 128-bit suffix.
+
+For **low similarity**, KV pairs cycle through the 100 key types; when a
+haystack is larger than 100 records, the category cycle repeats.
 
 **Step 3: Construct haystacks for each condition and size.**
 
 - **Sizes:** 75, 140, and 300 KV pairs (matching Liu et al., 2023).
 - **Examples per dataset:** 100.
-- **Dataset files:** 3 sizes × 2 similarity conditions × 3 primary positions = 18 datasets.
-- **Total examples:** 3 sizes × 2 similarity conditions × 3 positions × 100 = 1,800 examples per model.
+- **Dataset files:** 3 sizes × 2 similarity conditions × 5 primary positions = 30 datasets.
+- **Total examples:** 3 sizes × 2 similarity conditions × 5 positions × 100 = 3,000 examples per model.
 
 For each example:
 
@@ -127,12 +137,13 @@ Liu et al. (2023) varied position across a fine-grained grid. We will use a simp
 | Position label | Index (for \( N \) pairs) |
 |---|---|
 | Beginning | 0 (first) |
-| Early | \(\lfloor N/4 \rfloor\) |
-| Middle | \(\lfloor N/2 \rfloor\) |
-| Late | \(\lfloor 3N/4 \rfloor\) |
+| 25th percentile | \(\lfloor N/4 \rfloor\) |
+| 50th percentile | \(\lfloor N/2 \rfloor\) |
+| 75th percentile | \(\lfloor 3N/4 \rfloor\) |
 | End | \(N-1\) (last) |
 
-For the primary analysis, we will focus on **Beginning, Middle, and End** to keep the design manageable. Early and Late positions can be included as exploratory.
+All five positions are primary: **Beginning, 25th percentile, 50th
+percentile, 75th percentile, and End**.
 
 **Step 5: Serialise to prompt format.**
 
@@ -223,13 +234,13 @@ response = ollama.chat(
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 1. Generate synthetic KV datasets (3 sizes × 2 similarities) │
-│    → 18 dataset files, each with 100 examples                │
+│    → 30 dataset files, each with 100 examples                │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 2. For each model (3 models):                                │
-│    For each dataset (18 datasets):                           │
+│    For each dataset (30 datasets):                           │
 │      For each example (100 examples):                        │
 │        - Format prompt with target at designated position    │
 │        - Send to Ollama                                      │
@@ -312,7 +323,7 @@ pd.DataFrame(results).to_csv('results_qwen3_8b_75_high.csv', index=False)
 
 Before the main experiment:
 
-- Run 10 examples per dataset (18 datasets × 10 = 180 trials).
+- Run 10 examples per dataset (30 datasets × 10 = 300 trials).
 - Check for floor/ceiling effects.
 - Verify that prompts fit within context limits.
 - Verify that responses are parseable.
@@ -328,7 +339,9 @@ Before the main experiment:
 
 **Exact-match accuracy:** 1 if the response is exactly one line in the strict
 format `ANSWER: <one answer>` and the answer matches the target value
-(case-insensitive), 0 otherwise. Inference disables model thinking.
+(case-insensitive), including every suffix and separator, 0 otherwise.
+Inference disables model thinking and instructs the model to copy the complete
+literal value rather than a shortened semantic prefix.
 
 ### 6.2 Secondary Outcomes
 
@@ -340,7 +353,7 @@ format `ANSWER: <one answer>` and the answer matches the target value
 
 **Primary analysis:**
 
-A 3 (Position: Beginning, Middle, End) × 2 (Similarity: High, Low) × 3 (Size: 75, 140, 300) mixed-effects logistic regression with Accuracy as the dependent variable. Model and item (example) as random effects.
+A 5 (Position: Beginning, 25th, 50th, 75th percentile, End) × 2 (Similarity: High, Low) × 3 (Size: 75, 140, 300) mixed-effects logistic regression with Accuracy as the dependent variable. Model and item (example) as random effects.
 
 **Post-hoc tests:**
 
@@ -367,7 +380,7 @@ For each trial, record:
 
 - Model ID and version (e.g., `qwen3:8b`, Ollama version).
 - Quantisation level.
-- All prompt text (including system prompt if any).
+- The raw system prompt, while record-specific user prompts are not stored.
 - Sampling settings (`temperature`, `top_p`, `seed`, `num_ctx`).
 - Raw response (before scoring).
 - Scoring rule and outcome.
@@ -392,11 +405,11 @@ Include an explicit statement describing AI use for writing, analysis, or model 
 |---|---|
 | 1 | Finalise design, write pre-registration, generate datasets |
 | 2 | Run pilot, freeze materials, set up Ollama models |
-| 3 | Run main experiment (3 models × 18 datasets × 100 examples = 5,400 trials) |
+| 3 | Run main experiment (3 models × 30 datasets × 100 examples = 9,000 trials) |
 | 4 | Score responses, run statistical analysis, create visualisations |
 | 5 | Write report (CogSci format), prepare AI Use Statement, submit PDF |
 
-**Estimated runtime:** Assuming ~2 seconds per trial, 5,400 trials ≈ 3 hours of GPU time (parallelisable across models).
+**Estimated runtime:** Assuming ~2 seconds per trial, 9,000 trials ≈ 5 hours of GPU time (parallelisable across models).
 
 ---
 
