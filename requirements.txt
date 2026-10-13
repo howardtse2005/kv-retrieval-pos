@@ -1,0 +1,7 @@
+ollama>=0.4.7
+pandas>=2.0
+matplotlib>=3.7
+seaborn>=0.13
+statsmodels>=0.14
+tqdm>=4.66
+pytest>=8.0
