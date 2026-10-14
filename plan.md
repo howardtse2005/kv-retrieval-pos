@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This plan describes the construction, execution, and analysis of a controlled experiment investigating whether the position of a target fact within a long context affects an LLM's retrieval accuracy. The experiment uses a synthetic key-value (KV) retrieval paradigm, closely following Liu et al. (2023), with opaque 128-bit subject identifiers and controlled subject–key–value triples. Two conditions are contrasted: **high similarity** (all KV pairs share the same key type, e.g., date of birth) and **low similarity** (mixed key types: dates, colors, names). Three open-weight models are benchmarked locally via Ollama: **Qwen3-8B**, **Llama-3.1-8B**, and **Qwen3.5-9B** (if available; otherwise Qwen3-14B as a proxy).
+This plan describes the construction, execution, and analysis of a controlled experiment investigating whether the position of a target fact within a long context affects an LLM's retrieval accuracy. The experiment uses a synthetic key-value (KV) retrieval paradigm, closely following Liu et al. (2023), with compact four-digit subject identifiers and controlled subject–key–value triples. Two conditions are contrasted: **high similarity** (all KV pairs share the same key type, e.g., date of birth) and **low similarity** (mixed key types: dates, colors, names). Three open-weight models are benchmarked locally via Ollama: **Qwen3-8B**, **Llama-3.1-8B**, and **Qwen3.5-9B** (if available; otherwise Qwen3-14B as a proxy).
 
 The core research question: **Does retrieval accuracy vary as a function of target position, and is this effect modulated by the semantic similarity of surrounding distractors?**
 
@@ -32,7 +32,7 @@ Liu et al. (2023) demonstrated a U-shaped performance curve in long-context retr
 
 ### 3.1 Design Rationale
 
-Following Liu et al. (2023), we use a synthetic KV retrieval task to isolate exact-match retrieval from natural-language reasoning. Unlike Liu et al., who used random UUIDs for values, we retain readable value prefixes while using opaque 128-bit subject IDs and unique 128-bit suffixes to introduce a controlled manipulation of semantic similarity.
+Following Liu et al. (2023), we use a synthetic KV retrieval task to isolate exact-match retrieval from natural-language reasoning. Unlike Liu et al., who used random UUIDs for values, we retain readable value prefixes while using compact numeric subject IDs and unique four-digit suffixes to introduce a controlled manipulation of semantic similarity.
 
 **Advantages of meaningful triples:**
 
@@ -88,7 +88,7 @@ Each example consists of:
 
 **Step 1: Generate a pool of subjects.**
 
-- Create unique opaque subject IDs in the format `Subject_<32 lowercase hexadecimal characters>` to avoid prior semantic associations.
+- Create unique subject IDs in the format `Subject_<four digits>`.
 - For high similarity, all subjects share the same key type.
 - For low similarity, subjects are assigned different key types.
 
@@ -97,20 +97,21 @@ Each example consists of:
 | Key type | Value format | Example |
 |---|---|---|
 | `date of birth` | DD Month YYYY | "29 June 2004" |
-| `favorite color` | Color word + 128-bit hex suffix | "red-9f... (32 hex characters)" |
-| `pet name` | Pet name + 128-bit hex suffix | "Fluffy-a1... (32 hex characters)" |
-| `phone number` | Phone number + 128-bit hex suffix | "555-0100-4c... (32 hex characters)" |
-| `employee ID` | Employee ID + 128-bit hex suffix | "A7X3B9-e7... (32 hex characters)" |
+| `favorite color` | Color word + four-digit suffix | "red-4827" |
+| `pet name` | Pet name + four-digit suffix | "Fluffy-1539" |
+| `phone number` | Phone number + four-digit suffix | "555-0100-6042" |
+| `employee ID` | Employee ID + four-digit suffix | "A7X3B9-2718" |
 
 For **high similarity**, all KV pairs use one key type with distinct values;
 the key type rotates across examples so all 100 key types are represented.
 Non-date values retain their readable prefixes and append the unique suffix.
-Each non-date key has exactly three reusable base values. For example,
+Each key has exactly eight reusable base values. For example,
 favorite color uses `red`, `purple`, and `green` before the suffix.
 In low-similarity datasets, suffixes are omitted: size 75 uses 75 categories,
 size 140 uses all 100 categories with at most two records per category, and
 size 300 uses all 100 categories exactly three times. High-similarity datasets
-retain the 128-bit suffix.
+retain the four-digit suffix and use all eight base values per key before
+cycling.
 
 For **low similarity**, KV pairs cycle through the 100 key types; when a
 haystack is larger than 100 records, the category cycle repeats.
@@ -127,6 +128,9 @@ For each example:
 1. Generate \( N \) KV pairs (75, 140, or 300).
 2. Randomly select one pair as the target.
 3. Place the target pair at the designated position.
+   The five position variants for the same size, condition, and example index
+   reuse the identical generated haystack, subjects, values, and target; only
+   the target position changes.
 4. Ensure all keys are unique (no duplicate subject–key combinations).
 5. Ensure the target value is unique across the haystack (no distractor has the same value).
 
@@ -197,8 +201,8 @@ This format is explicit, unambiguous, and easy to parse. It also ensures that th
 Ollama's default context window is 4096 tokens. For 300 KV pairs, the prompt may exceed this. Set `num_ctx` appropriately:
 
 - For 75 pairs: ~2,000 tokens (safe with default 4096).
-- For 140 pairs: ~3,500 tokens (safe with default 4096).
-- For 300 pairs: ~7,500 tokens (requires `num_ctx` ≥ 8192).
+- For 140 pairs: ~3,500 tokens (use `num_ctx` 8192 to leave room for instructions).
+- For 300 pairs: ~7,500 tokens (use `num_ctx` 16384 to leave room for instructions).
 
 **Setting `num_ctx`:**
 

@@ -5,20 +5,20 @@ reproducible synthetic subject-key-value haystacks, evaluates local Ollama
 models, scores responses, and produces summary tables and figures.
 
 Records are serialized as natural-language statements such as
-`Subject_9f2c7a1b4e8d6035c1a9f0b7e2d4a6c8's date of birth is 4 March 1950`.
-Subject IDs use a `Subject_` prefix followed by a unique 128-bit hexadecimal
+`Subject_4827's date of birth is 4 March 1950`.
+Subject IDs use a `Subject_` prefix followed by a unique four-digit numeric
 identifier. High-similarity examples use
 one consistent key type per haystack, while rotating through all 100 key types
 across examples. Low-similarity examples mix the 100 key types. Values are
 generated into key-specific pools and shuffled before records are built. Dates remain human-readable; every non-date value keeps a
-human-readable prefix and appends a unique 128-bit hexadecimal suffix
-(32 hex characters) after a dash, such as `red-9f2c...`.
-Each non-date key has exactly three reusable base values; for example,
+human-readable prefix and appends a unique four-digit numeric suffix after a
+dash, such as `red-4827`.
+Each key has exactly eight reusable base values; for example,
 favorite colors cycle through `red`, `purple`, and `green`.
-Low-similarity datasets omit the hexadecimal suffix: size 75 uses 75 distinct
+Low-similarity datasets omit the numeric suffix: size 75 uses 75 distinct
 categories, size 140 uses all 100 categories with at most two records per
 category, and size 300 uses every category exactly three times. High-similarity
-datasets retain hexadecimal suffixes.
+datasets retain numeric suffixes and cycle through all eight base values.
 Subject IDs are also independently shuffled in every haystack and remain
 unique, so neither subjects nor values reveal an ordered index.
 
@@ -70,7 +70,8 @@ trial IDs already present in an existing result file. Dataset generation is
 seeded (`42` by default), and each example records its own seed-independent
 position and target metadata.
 
-Inference disables model thinking (`think=False`) and requires exactly one
+Inference disables model thinking (`think=False`) and uses 8,192 tokens for
+140-record prompts and 16,384 tokens for 300-record prompts. It requires exactly one
 line in the form `ANSWER: <one answer>`. Responses are scored as `correct`,
 `wrong_answer`, `wrong_format`, or `no_answer`; Ollama/API failures are
 recorded separately as `api_error`.

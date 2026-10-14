@@ -17,18 +17,20 @@ from tqdm import tqdm
 
 MODEL_CANDIDATES = ("qwen3:8b", "llama3.1:8b", "qwen3.5:9b")
 MODEL_FALLBACK = "qwen3:14b"
-NUM_CTX = {75: 4096, 140: 4096, 300: 8192}
+NUM_CTX = {75: 4096, 140: 8192, 300: 16384}
 ANSWER_PATTERN = re.compile(r"^ANSWER: ([^\r\n]+)$")
 SYSTEM_PROMPT = (
     "You are given a list of subject-key-value records.\n"
     "Each record is formatted as: Subject's key is value.\n"
     "Answer the question using only the records.\n"
+    "Scan every record before answering; the matching subject-key record is "
+    "present exactly once, even when the subject identifier is compact.\n"
     "Respond with exactly one line and nothing else, using this format:\n"
     "ANSWER: <one answer>\n"
     "Do not provide reasoning, explanation, alternatives, a shortened value, "
     "full sentences, or additional lines.\n"
-    "For example, 'ANSWER: red-849de079d64e5c97e8e1226372ed8bab', \n" 
-    "not 'ANSWER: Subject_b4c855b2e0409e95f7e033249f5189ad's favorite color is red-849de079d64e5c97e8e1226372ed8bab' or 'ANSWER: red'\n"
+    "For example, 'ANSWER: red-4827', \n"
+    "not 'ANSWER: Subject_1539's favorite color is red-4827' or 'ANSWER: red'\n"
     "ANSWER:"
 )
 
@@ -61,14 +63,23 @@ def resolve_models(requested: list[str] | None) -> tuple[list[str], dict[str, st
 
 
 def build_prompt(example: dict[str, Any]) -> str:
+    target_subject, target_key = example["target_key"]
+    matching_records = [
+        record for record in example["ordered_kv_records"]
+        if record[0] == target_subject and record[1] == target_key
+    ]
+    if len(matching_records) != 1:
+        raise ValueError(
+            f"Expected exactly one target record for {target_subject!r}, "
+            f"{target_key!r}; found {len(matching_records)}"
+        )
     records = "\n".join(
         f"{subject}'s {key} is {value}"
         for subject, key, value in example["ordered_kv_records"]
     )
-    subject, key = example["target_key"]
     return (
         f"Records:\n{records}\n\n"
-        f"Question: What is {subject}'s {key}?"
+        f"Question: What is {target_subject}'s {target_key}?"
     )
 
 

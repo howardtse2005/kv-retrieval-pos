@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import random
 from datetime import date, timedelta
@@ -41,106 +40,106 @@ KEY_TYPES = (
     "subscription plan", "account status",
 )
 BASE_VALUES = {
-    "date of birth": ("1 January 1950", "15 June 1975", "28 November 2000"),
-    "favorite color": ("red", "purple", "green"),
-    "pet name": ("Fluffy", "Mittens", "Buddy"),
-    "phone number": ("555-0100", "555-0101", "555-0102"),
-    "employee ID": ("A7X3B9", "B4K8P2", "C9M1Q7"),
-    "street address": ("12 Oak Street", "48 Maple Avenue", "7 Cedar Road"),
-    "city of residence": ("London", "Toronto", "Singapore"),
-    "country of residence": ("United Kingdom", "Canada", "Republic of Singapore"),
-    "nationality": ("British", "Canadian", "Singaporean"),
-    "language spoken": ("English", "French", "Mandarin"),
-    "occupation": ("teacher", "engineer", "nurse"),
-    "department": ("finance", "marketing", "engineering"),
-    "job title": ("analyst", "manager", "director"),
-    "company name": ("Northstar Labs", "Cedar Systems", "Orion Works"),
-    "school name": ("Oakridge School", "Riverside Academy", "Hillcrest School"),
-    "university name": ("Oxford University", "McGill University", "Nanyang University"),
-    "degree": ("Bachelor of Arts", "Master of Science", "Doctor of Philosophy"),
-    "major subject": ("history", "computer science", "biology"),
-    "graduation year": ("2018", "2020", "2022"),
-    "favorite food": ("pizza", "sushi", "pasta"),
-    "favorite drink": ("coffee", "tea", "lemonade"),
-    "favorite movie": ("Inception", "Moonlight", "Arrival"),
-    "favorite book": ("Dune", "Beloved", "1984"),
-    "favorite song": ("Imagine", "Hallelujah", "Yesterday"),
-    "favorite band": ("The Beatles", "Radiohead", "Coldplay"),
-    "favorite sport": ("football", "tennis", "basketball"),
-    "favorite team": ("Arsenal", "Raptors", "Lakers"),
-    "favorite holiday": ("Christmas", "Diwali", "New Year"),
-    "favorite season": ("spring", "summer", "autumn"),
-    "favorite animal": ("dog", "cat", "elephant"),
-    "hobby": ("painting", "gardening", "photography"),
-    "musical instrument": ("piano", "guitar", "violin"),
-    "shirt size": ("small", "medium", "large"),
-    "shoe size": ("size 8", "size 9", "size 10"),
-    "height": ("170 cm", "180 cm", "190 cm"),
-    "weight": ("60 kg", "75 kg", "90 kg"),
-    "eye color": ("hazel", "blue", "emerald"),
-    "hair color": ("black", "auburn", "blonde"),
-    "blood type": ("A positive", "B positive", "O positive"),
-    "marital status": ("single", "married", "divorced"),
-    "number of siblings": ("0 siblings", "1 sibling", "2 siblings"),
-    "mother's name": ("Maria", "Susan", "Fatima"),
-    "father's name": ("James", "Robert", "Ahmed"),
-    "birth city": ("Manchester", "Vancouver", "Kuala Lumpur"),
-    "birth country": ("England", "Canadian territory", "Malaysia"),
-    "email address": ("alex@example.com", "sam@example.com", "lee@example.com"),
-    "website": ("example.org", "example.net", "example.com"),
-    "social handle": ("@alex", "@sam", "@lee"),
-    "passport number": ("P1234567", "P2345678", "P3456789"),
-    "license number": ("D123456", "D234567", "D345678"),
-    "bank name": ("Barclays", "RBC", "DBS"),
-    "account type": ("checking", "savings", "business"),
-    "currency": ("GBP", "CAD", "SGD"),
-    "tax region": ("England tax zone", "Ontario", "Singapore tax zone"),
-    "time zone": ("Europe/London", "America/Toronto", "Asia/Singapore"),
-    "preferred currency": ("pound sterling", "Canadian dollar", "Singapore dollar"),
-    "emergency contact": ("Alice Smith", "Brian Lee", "Carol Wong"),
-    "emergency phone": ("555-0110", "555-0111", "555-0112"),
-    "allergy": ("none", "peanuts", "pollen"),
-    "dietary restriction": ("no restriction", "vegetarian", "vegan"),
-    "medical condition": ("no condition", "asthma", "migraine"),
-    "insurance provider": ("Aviva", "Manulife", "AIA"),
-    "insurance number": ("INS10001", "INS20002", "INS30003"),
-    "doctor name": ("Dr Patel", "Dr Chen", "Dr Williams"),
-    "hospital name": ("Central Hospital", "Riverside Hospital", "City Hospital"),
-    "room number": ("Room 101", "Room 202", "Room 303"),
-    "vehicle make": ("Toyota", "Ford", "Honda"),
-    "vehicle model": ("Corolla", "Focus", "Civic"),
-    "vehicle color": ("silver", "white", "obsidian"),
-    "vehicle year": ("2018 model", "2020 model", "2022 model"),
-    "license plate": ("ABC123", "DEF456", "GHI789"),
-    "flight number": ("BA101", "AC202", "SQ303"),
-    "frequent flyer number": ("FF10001", "FF20002", "FF30003"),
-    "hotel name": ("Grand Hotel", "Park Hotel", "Harbour Hotel"),
-    "room preference": ("window seat", "high floor", "quiet room"),
-    "check-in date": ("1 April 2024", "10 May 2024", "20 June 2024"),
-    "check-out date": ("5 April 2024", "15 May 2024", "25 June 2024"),
-    "package carrier": ("FedEx", "DHL", "UPS"),
-    "tracking number": ("TRK10001", "TRK20002", "TRK30003"),
-    "favorite website": ("Wikipedia", "YouTube", "GitHub"),
-    "operating system": ("Windows", "macOS", "Linux"),
-    "device model": ("ThinkPad X1", "MacBook Air", "Surface Laptop"),
-    "screen size": ("13 inch", "15 inch", "27 inch"),
-    "internet provider": ("Comcast", "Bell", "SingTel"),
-    "router model": ("Archer C7", "Eero 6", "Orbi RBR"),
-    "wifi network": ("HomeNet", "OfficeNet", "GuestNet"),
-    "project name": ("Apollo", "Beacon", "Atlas"),
-    "project code": ("PRJ100", "PRJ200", "PRJ300"),
-    "team name": ("Red Team", "Blue Team", "Green Team"),
-    "manager name": ("Jordan Smith", "Taylor Lee", "Morgan Chen"),
-    "office floor": ("Floor 2", "Floor 5", "Floor 8"),
-    "desk number": ("Desk 12", "Desk 34", "Desk 56"),
-    "building name": ("Oak Building", "Maple Building", "Cedar Building"),
-    "meeting room": ("Room Alpha", "Room Bravo", "Room Charlie"),
-    "access level": ("standard", "privileged", "administrator"),
-    "security question": ("first school", "first pet", "birth city"),
-    "preferred contact method": ("email", "phone", "post"),
-    "customer tier": ("bronze", "silver tier", "gold"),
-    "subscription plan": ("basic", "professional", "enterprise"),
-    "account status": ("active", "pending", "suspended"),
+    "date of birth": ("1 January 1950", "15 June 1975", "28 November 2000", "4 March 1925", "9 September 1940", "22 December 1965", "11 February 1985", "30 July 2010"),
+    "favorite color": ("red", "purple", "green", "blue", "yellow", "orange", "pink", "brown"),
+    "pet name": ("Fluffy", "Mittens", "Buddy", "Max", "Bella", "Charlie", "Luna", "Rocky"),
+    "phone number": ("555-0100", "555-0101", "555-0102", "555-1003", "565-0104", "557-0105", "575-0126", "545-0147"),
+    "employee ID": ("A7X3B9", "B4K8P2", "C9M1Q7", "D2L5R4", "E6N3S8", "F1J7T5", "G8H2U1", "H5V9W6"),
+    "street address": ("12 Oak Street", "48 Maple Avenue", "7 Cedar Road", "23 Pine Lane", "56 Birch Boulevard", "34 Elm Drive", "89 Spruce Court", "15 Willow Way"),
+    "city of residence": ("London", "Toronto", "Singapore", "New York", "Sydney", "Berlin", "Tokyo", "Paris"),
+    "country of residence": ("United Kingdom", "Canada", "Republic of Singapore", "United States", "Australia", "Germany", "Japan", "France"),
+    "nationality": ("British", "Canadian", "Singaporean", "American", "Australian", "German", "Japanese", "French"),
+    "language spoken": ("English", "French", "Mandarin", "Spanish", "German", "Japanese", "Korean", "Italian"),
+    "occupation": ("teacher", "engineer", "nurse", "artist", "scientist", "writer", "musician", "chef"),
+    "department": ("finance", "marketing", "engineering", "human resources", "sales", "research and development", "customer service", "operations"),
+    "job title": ("analyst", "manager", "director", "coordinator", "specialist", "consultant", "administrator", "supervisor"),
+    "company name": ("Northstar Labs", "Cedar Systems", "Orion Works", "Pinecone Solutions", "MapleTech", "Silverline Industries", "Blue Horizon Corp", "Golden Gate Enterprises"),
+    "school name": ("Oakridge School", "Riverside Academy", "Hillcrest School", "Lakeside Institute", "Maplewood School", "Cedar Valley Academy", "Pinehill School", "Silverlake Institute"),
+    "university name": ("Oxford University", "McGill University", "Nanyang University", "Harvard University", "University of Sydney", "Technical University of Munich", "University of Tokyo", "Sorbonne University"),
+    "degree": ("Bachelor of Arts", "Master of Science", "Doctor of Philosophy", "Bachelor of Engineering", "Master of Business Administration", "Doctor of Medicine", "Bachelor of Fine Arts", "Master of Public Health"),
+    "major subject": ("history", "computer science", "biology", "mechanical engineering", "business administration", "medicine", "fine arts", "public health"),
+    "graduation year": ("2018", "2020", "2022", "2019", "2021", "2023", "2017", "2024"),
+    "favorite food": ("pizza", "sushi", "pasta", "burger", "salad", "tacos", "curry", "steak"),
+    "favorite drink": ("coffee", "tea", "lemonade", "smoothie", "soda", "water", "juice", "milkshake"),
+    "favorite movie": ('Inception', 'Moonlight', 'Arrival', 'The Godfather', 'Spirited Away', 'The Matrix', 'Casablanca', 'Parasite'),
+    "favorite book": ('Dune', 'Beloved', '1984', 'Pride and Prejudice', 'The Hobbit', 'To Kill a Mockingbird', 'The Great Gatsby', 'Sapiens'),
+    "favorite song": ('Imagine', 'Hallelujah', 'Yesterday', 'Bohemian Rhapsody', 'Let It Be', 'Hotel California', 'What a Wonderful World', 'Shape of You'),
+    "favorite band": ('The Beatles', 'Radiohead', 'Coldplay', 'Queen', 'Nirvana', 'Fleetwood Mac', 'Maroon 5', 'ABBA'),
+    "favorite sport": ('football', 'tennis', 'basketball', 'cricket', 'baseball', 'swimming', 'volleyball', 'cycling'),
+    "favorite team": ('Arsenal', 'Raptors', 'Lakers', 'Yankees', 'Warriors', 'All Blacks', 'Bayern Munich', 'Dodgers'),
+    "favorite holiday": ('Christmas', 'Diwali', 'New Year', 'Eid al-Fitr', 'Thanksgiving', 'Hanukkah', 'Lunar New Year', 'Easter'),
+    "favorite season": ('spring', 'summer', 'autumn', 'winter', 'monsoon', 'dry season', 'harvest season', 'late summer'),
+    "favorite animal": ('dog', 'cat', 'elephant', 'lion', 'dolphin', 'penguin', 'horse', 'tiger'),
+    "hobby": ('painting', 'gardening', 'photography', 'woodworking', 'knitting', 'cooking', 'birdwatching', 'cycling'),
+    "musical instrument": ('piano', 'guitar', 'violin', 'drums', 'flute', 'saxophone', 'cello', 'trumpet'),
+    "shirt size": ('small', 'medium', 'large', 'extra small', 'extra large', 'XXL', 'petite', 'tall'),
+    "shoe size": ('size 8', 'size 9', 'size 10', 'size 6', 'size 7', 'size 11', 'size 12', 'size 13'),
+    "height": ('170 cm', '180 cm', '190 cm', '155 cm', '165 cm', '175 cm', '185 cm', '195 cm'),
+    "weight": ('60 kg', '75 kg', '90 kg', '50 kg', '65 kg', '80 kg', '100 kg', '110 kg'),
+    "eye color": ('hazel', 'blue', 'emerald', 'brown', 'gray', 'amber', 'green', 'violet'),
+    "hair color": ('black', 'auburn', 'blonde', 'brown', 'gray', 'red', 'silver', 'dark brown'),
+    "blood type": ('A positive', 'B positive', 'O positive', 'AB positive', 'A negative', 'B negative', 'O negative', 'AB negative'),
+    "marital status": ('single', 'married', 'divorced', 'engaged', 'widowed', 'separated', 'partnered', 'civil union'),
+    "number of siblings": ('0 siblings', '1 sibling', '2 siblings', '3 siblings', '4 siblings', '5 siblings', '6 siblings', '7 siblings'),
+    "mother's name": ('Maria', 'Susan', 'Fatima', 'Elizabeth', 'Aisha', 'Linda', 'Grace', 'Hannah'),
+    "father's name": ('James', 'Robert', 'Ahmed', 'Michael', 'David', 'Daniel', 'Thomas', 'William'),
+    "birth city": ('Manchester', 'Vancouver', 'Kuala Lumpur', 'Birmingham', 'Montreal', 'Penang', 'Melbourne', 'Seattle'),
+    "birth country": ('England', 'Canadian territory', 'Malaysia', 'Wales', 'France', 'Thailand', 'New Zealand', 'United States'),
+    "email address": ('alex@example.com', 'sam@example.com', 'lee@example.com', 'jordan@example.com', 'morgan@example.com', 'casey@example.com', 'riley@example.com', 'taylor@example.com'),
+    "website": ('example.org', 'example.net', 'example.com', 'example.edu', 'example.io', 'example.co.uk', 'example.ca', 'example.au'),
+    "social handle": ('@alex', '@sam', '@lee', '@jordan', '@morgan', '@casey', '@riley', '@taylor'),
+    "passport number": ('P1234567', 'P2345678', 'P3456789', 'P4567890', 'P5678901', 'P6789012', 'P7890123', 'P8901234'),
+    "license number": ('D123456', 'D234567', 'D345678', 'D456789', 'D567890', 'D678901', 'D789012', 'D890123'),
+    "bank name": ('Barclays', 'RBC', 'DBS', 'HSBC', 'Citibank', 'Chase', 'Wells Fargo', 'Standard Chartered'),
+    "account type": ('checking', 'savings', 'business', 'joint', 'student', 'trust', 'retirement', 'corporate'),
+    "currency": ("GBP", "CAD", "SGD", "HKD", "EUR", "JPY", "AUD", "CHF"),
+    "tax region": ('England tax zone', 'Ontario', 'Singapore tax zone', 'Scotland', 'Quebec', 'California', 'Bavaria', 'New South Wales'),
+    "time zone": ('Europe/London', 'America/Toronto', 'Asia/Singapore', 'America/New_York', 'Europe/Paris', 'Asia/Tokyo', 'Australia/Sydney', 'America/Los_Angeles'),
+    "preferred currency": ('pound sterling', 'Canadian dollar', 'Singapore dollar', 'US dollar', 'euro', 'Japanese yen', 'Australian dollar', 'Swiss franc'),
+    "emergency contact": ('Alice Smith', 'Brian Lee', 'Carol Wong', 'David Kim', 'Emma Davis', 'Frank Martin', 'Grace Wilson', 'Henry Brown'),
+    "emergency phone": ('555-0110', '555-0111', '555-0112', '555-0113', '555-0114', '555-0115', '555-0116', '555-0117'),
+    "allergy": ('none', 'peanuts', 'pollen', 'shellfish', 'dairy', 'gluten', 'latex', 'dust'),
+    "dietary restriction": ('no restriction', 'vegetarian', 'vegan', 'halal', 'kosher', 'gluten-free', 'pescatarian', 'low sodium'),
+    "medical condition": ('no condition', 'asthma', 'migraine', 'diabetes', 'hypertension', 'eczema', 'arthritis', 'insomnia'),
+    "insurance provider": ('Aviva', 'Manulife', 'AIA', 'Bupa', 'Cigna', 'UnitedHealthcare', 'Blue Cross', 'Kaiser Permanente'),
+    "insurance number": ('INS10001', 'INS20002', 'INS30003', 'INS40004', 'INS50005', 'INS60006', 'INS70007', 'INS80008'),
+    "doctor name": ('Dr Patel', 'Dr Chen', 'Dr Williams', 'Dr Garcia', 'Dr Singh', 'Dr Johnson', 'Dr Nguyen', 'Dr Anderson'),
+    "hospital name": ('Central Hospital', 'Riverside Hospital', 'City Hospital', 'Memorial Hospital', 'St Mary Hospital', 'General Hospital', 'University Hospital', 'Mercy Hospital'),
+    "room number": ('Room 101', 'Room 202', 'Room 303', 'Room 404', 'Room 505', 'Room 606', 'Room 707', 'Room 808'),
+    "vehicle make": ('Toyota', 'Ford', 'Honda', 'Nissan', 'BMW', 'Mercedes-Benz', 'Hyundai', 'Subaru'),
+    "vehicle model": ('Corolla', 'Focus', 'Civic', 'Altima', '3 Series', 'C-Class', 'Elantra', 'Outback'),
+    "vehicle color": ('silver', 'white', 'obsidian', 'red', 'blue', 'green', 'black', 'gray'),
+    "vehicle year": ('2018 model', '2020 model', '2022 model', '2016 model', '2017 model', '2019 model', '2021 model', '2023 model'),
+    "license plate": ('ABC123', 'DEF456', 'GHI789', 'JKL012', 'MNO345', 'PQR678', 'STU901', 'VWX234'),
+    "flight number": ('BA101', 'AC202', 'SQ303', 'LH404', 'EK505', 'QF606', 'UA707', 'JL808'),
+    "frequent flyer number": ('FF10001', 'FF20002', 'FF30003', 'FF40004', 'FF50005', 'FF60006', 'FF70007', 'FF80008'),
+    "hotel name": ('Grand Hotel', 'Park Hotel', 'Harbour Hotel', 'Seaside Resort', 'City Lodge', 'Mountain Inn', 'Garden Suites', 'Royal Plaza'),
+    "room preference": ('window seat', 'high floor', 'quiet room', 'king bed', 'late checkout', 'ground floor', 'city view', 'non-smoking'),
+    "check-in date": ('1 April 2024', '10 May 2024', '20 June 2024', '5 July 2024', '12 August 2024', '3 September 2024', '14 October 2024', '21 November 2024'),
+    "check-out date": ('5 April 2024', '15 May 2024', '25 June 2024', '9 July 2024', '18 August 2024', '10 September 2024', '20 October 2024', '28 November 2024'),
+    "package carrier": ('FedEx', 'DHL', 'UPS', 'Royal Mail', 'Canada Post', 'Australia Post', 'Japan Post', 'USPS'),
+    "tracking number": ('TRK10001', 'TRK20002', 'TRK30003', 'TRK40004', 'TRK50005', 'TRK60006', 'TRK70007', 'TRK80008'),
+    "favorite website": ('Wikipedia', 'YouTube', 'GitHub', 'Stack Overflow', 'Reddit', 'LinkedIn', 'Mozilla', 'Khan Academy'),
+    "operating system": ('Windows', 'macOS', 'Linux', 'Ubuntu', 'Fedora', 'ChromeOS', 'Android', 'iOS'),
+    "device model": ('ThinkPad X1', 'MacBook Air', 'Surface Laptop', 'Dell XPS 13', 'iPad Pro', 'Pixel 8', 'Galaxy S24', 'Framework Laptop'),
+    "screen size": ('13 inch', '15 inch', '27 inch', '11 inch', '14 inch', '16 inch', '24 inch', '32 inch'),
+    "internet provider": ('Comcast', 'Bell', 'SingTel', 'Verizon', 'AT&T', 'Rogers', 'Vodafone', 'Telstra'),
+    "router model": ('Archer C7', 'Eero 6', 'Orbi RBR', 'Nighthawk R7000', 'Google Nest WiFi', 'TP-Link AX55', 'Linksys Velop', 'UniFi Dream Router'),
+    "wifi network": ('HomeNet', 'OfficeNet', 'GuestNet', 'LibraryNet', 'StudioNet', 'LabNet', 'CafeNet', 'WorkshopNet'),
+    "project name": ('Apollo', 'Beacon', 'Atlas', 'Mercury', 'Horizon', 'Everest', 'Keystone', 'Solstice'),
+    "project code": ('PRJ100', 'PRJ200', 'PRJ300', 'PRJ400', 'PRJ500', 'PRJ600', 'PRJ700', 'PRJ800'),
+    "team name": ('Red Team', 'Blue Team', 'Green Team', 'Orange Team', 'Yellow Team', 'Purple Team', 'White Team', 'Black Team'),
+    "manager name": ('Jordan Smith', 'Taylor Lee', 'Morgan Chen', 'Alex Johnson', 'Jamie Patel', 'Chris Evans', 'Sam Wilson', 'Drew Garcia'),
+    "office floor": ('Floor 2', 'Floor 5', 'Floor 8', 'Floor 1', 'Floor 3', 'Floor 4', 'Floor 6', 'Floor 9'),
+    "desk number": ('Desk 12', 'Desk 34', 'Desk 56', 'Desk 18', 'Desk 27', 'Desk 45', 'Desk 63', 'Desk 72'),
+    "building name": ('Oak Building', 'Maple Building', 'Cedar Building', 'Pine Building', 'River Building', 'Summit Building', 'Sequoia Building', 'Central Building'),
+    "meeting room": ('Room Alpha', 'Room Bravo', 'Room Charlie', 'Room Delta', 'Room Echo', 'Room Foxtrot', 'Room Golf', 'Room Hotel'),
+    "access level": ('standard', 'privileged', 'administrator', 'read-only', 'editor', 'owner', 'auditor', 'guest'),
+    "security question": ('first school', 'first pet', 'birth city', 'favorite teacher', 'childhood address', 'first concert', 'favorite author', 'middle name'),
+    "preferred contact method": ('email', 'phone', 'post', 'text message', 'video call', 'messaging app', 'in person', 'mobile app'),
+    "customer tier": ('bronze', 'silver tier', 'gold', 'starter', 'standard', 'premium', 'platinum', 'diamond'),
+    "subscription plan": ('basic', 'professional', 'enterprise', 'starter', 'team', 'business plus', 'ultimate', 'family'),
+    "account status": ('active', 'pending', 'suspended', 'verified', 'locked', 'closed', 'on hold', 'under review'),
 }
 
 
@@ -159,17 +158,24 @@ def position_index(label: str, size: int) -> int:
     raise ValueError(f"Unknown position label: {label}")
 
 
-def value_for(key_type: str, index: int, include_suffix: bool = True) -> str:
-    """Generate a human-readable value with a unique 128-bit suffix."""
+def value_for(
+    key_type: str,
+    index: int,
+    include_suffix: bool = True,
+    base_index: int | None = None,
+) -> str:
+    """Generate a human-readable value using every eight-value base pool."""
     if key_type == "date of birth":
         if include_suffix:
             return (date(1950, 1, 1) + timedelta(days=index)).strftime("%-d %B %Y")
-        return BASE_VALUES[key_type][index % 3]
+        selected_index = index if base_index is None else base_index
+        return BASE_VALUES[key_type][selected_index % len(BASE_VALUES[key_type])]
     if key_type in KEY_TYPES:
-        suffix = hashlib.blake2b(
-            f"{key_type}:{index}".encode("utf-8"), digest_size=16
-        ).hexdigest()
-        prefix = BASE_VALUES[key_type][index % 3]
+        # Values only need to be unique within one haystack. The generator
+        # currently creates at most 300 records per haystack.
+        suffix = f"{index % 10000:04d}"
+        selected_index = index if base_index is None else base_index
+        prefix = BASE_VALUES[key_type][selected_index % len(BASE_VALUES[key_type])]
         return f"{prefix}-{suffix}" if include_suffix else prefix
     raise ValueError(f"Unknown key type: {key_type}")
 
@@ -180,12 +186,19 @@ def shuffled_values(
     rng: random.Random,
     include_suffix: bool = True,
 ) -> list[str]:
-    """Load generated values and shuffle them without changing their key type."""
+    """Load and shuffle values while cycling through all eight base values."""
     values_by_key: dict[str, list[str]] = {key: [] for key in KEY_TYPES}
+    occurrences = {key: 0 for key in KEY_TYPES}
     for index, key in enumerate(keys):
         values_by_key[key].append(
-            value_for(key, example_index * len(keys) + index, include_suffix)
+            value_for(
+                key,
+                example_index * len(keys) + index,
+                include_suffix,
+                base_index=occurrences[key],
+            )
         )
+        occurrences[key] += 1
     for values in values_by_key.values():
         rng.shuffle(values)
     offsets = {key: 0 for key in KEY_TYPES}
@@ -206,13 +219,8 @@ def make_example(
     if condition not in DEFAULT_CONDITIONS:
         raise ValueError(f"Unknown similarity condition: {condition}")
     rng = random.Random(seed)
-    subjects = [
-        "Subject_" + hashlib.blake2b(
-            f"{seed}:subject:{i}".encode("utf-8"), digest_size=16
-        ).hexdigest()
-        for i in range(size)
-    ]
-    rng.shuffle(subjects)
+    subject_numbers = rng.sample(range(10000), size)
+    subjects = [f"Subject_{number:04d}" for number in subject_numbers]
     if condition == "high":
         # High similarity uses every key type across examples, but one key type
         # consistently appears on every line within an individual haystack.
@@ -275,9 +283,11 @@ def generate_dataset(
                 path = output_dir / f"kv_dataset_{size}_{condition}_{position}.jsonl"
                 with path.open("w", encoding="utf-8") as handle:
                     for index in range(examples_per_position):
+                        # Keep all five position variants paired: the seed,
+                        # subjects, values, and selected target are identical.
+                        # Only the target insertion position varies.
                         example_seed = (seed + size * 1_000_000 + index * 101
-                                        + condition_offsets.get(condition, 0)
-                                        + positions.index(position) * 10_000)
+                                        + condition_offsets.get(condition, 0))
                         example = make_example(size, condition, position, index, example_seed)
                         handle.write(json.dumps(example, ensure_ascii=True) + "\n")
                 paths.append(path)

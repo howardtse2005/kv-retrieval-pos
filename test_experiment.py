@@ -16,30 +16,55 @@ def test_dataset_has_target_at_declared_position(tmp_path):
     for row in rows:
         subjects = [record[0] for record in row["ordered_kv_records"]]
         assert len(subjects) == len(set(subjects))
-        assert all(re.fullmatch(r"Subject_[0-9a-f]{32}", subject) for subject in subjects)
+        assert all(re.fullmatch(r"Subject_[0-9]{4}", subject) for subject in subjects)
         assert subjects != sorted(subjects)
         assert row["ordered_kv_records"][row["position"]][0:2] == row["target_key"]
         assert sum(record[2] == row["target_value"] for record in row["ordered_kv_records"]) == 1
         assert len({record[1] for record in row["ordered_kv_records"]}) == 1
 
 
+def test_position_variants_share_the_same_underlying_example(tmp_path):
+    generate_dataset(tmp_path, sizes=(75, 140, 300), examples_per_position=3, seed=42)
+    for size in (75, 140, 300):
+        for condition in ("high", "low"):
+            variants = []
+            for position in POSITIONS:
+                path = tmp_path / f"kv_dataset_{size}_{condition}_{position}.jsonl"
+                variants.append([json.loads(line) for line in path.read_text().splitlines()])
+            for rows in zip(*variants):
+                targets = [row["target_key"] for row in rows]
+                values = [row["target_value"] for row in rows]
+                assert len({json.dumps(target) for target in targets}) == 1
+                assert len(set(values)) == 1
+                canonical_records = [
+                    [record for record in row["ordered_kv_records"]
+                     if record[0:2] != row["target_key"]]
+                    for row in rows
+                ]
+                assert all(records == canonical_records[0] for records in canonical_records)
+
+
 def test_high_similarity_covers_all_key_types_and_shuffles_values(tmp_path):
     assert len(KEY_TYPES) == 100
-    assert all(len(values) == 3 for values in BASE_VALUES.values())
-    assert BASE_VALUES["favorite color"] == ("red", "purple", "green")
+    assert all(len(values) == 8 for values in BASE_VALUES.values())
+    assert BASE_VALUES["favorite color"][:3] == ("red", "purple", "green")
     paths = generate_dataset(tmp_path, sizes=(75,), examples_per_position=100, seed=42)
     rows = [json.loads(line) for line in paths[0].read_text().splitlines()]
     assert {row["ordered_kv_records"][0][1] for row in rows} == set(KEY_TYPES)
     for row in rows:
         values = [record[2] for record in row["ordered_kv_records"]]
         assert len(values) == len(set(values))
+        key = row["ordered_kv_records"][0][1]
+        if key != "date of birth":
+            prefixes = [value.rsplit("-", 1)[0] for value in values]
+            assert set(prefixes) == set(BASE_VALUES[key])
 
     keys = ["phone number"] * 75
     generated_order = [value_for("phone number", i) for i in range(75)]
     assert shuffled_values(keys, example_index=0, rng=random.Random(42)) != generated_order
 
 
-def test_five_positions_and_128_bit_non_date_values(tmp_path):
+def test_five_positions_and_compact_numeric_non_date_values(tmp_path):
     paths = generate_dataset(tmp_path, sizes=(75,), examples_per_position=2, seed=42)
     assert len(paths) == 10
     assert any(path.name.endswith("_25th_percentile.jsonl") for path in paths)
@@ -53,13 +78,12 @@ def test_five_positions_and_128_bit_non_date_values(tmp_path):
             row = json.loads(line)
             for subject, key, value in row["ordered_kv_records"]:
                 if key != "date of birth" and is_high:
-                    assert re.fullmatch(r".+-[0-9a-f]{32}", value)
+                    assert re.fullmatch(r".+-[0-9]{4}", value)
                     prefix, suffix = value.rsplit("-", 1)
                     assert prefix in BASE_VALUES[key]
-                    assert len(suffix) == 32
+                    assert len(suffix) == 4
                 elif key != "date of birth":
                     assert value in BASE_VALUES[key]
-                    assert not re.search(r"-[0-9a-f]{32}$", value)
 
 
 def test_low_similarity_uses_all_categories_and_base_values(tmp_path):
@@ -76,7 +100,6 @@ def test_low_similarity_uses_all_categories_and_base_values(tmp_path):
             assert len({record[2] for record in row["ordered_kv_records"]}) == size
             for _, key, value in row["ordered_kv_records"]:
                 assert value in BASE_VALUES[key]
-                assert not re.search(r"-[0-9a-f]{32}$", value)
 
 
 def test_prompt_and_scoring():
@@ -96,3 +119,18 @@ def test_prompt_and_scoring():
     assert score_response("ANSWER: 1 January 2000\nANSWER: extra", "1 January 2000") == (
         False, "wrong_format"
     )
+
+
+def test_prompt_validates_and_contains_long_target_record():
+    subject = "Subject_1234"
+    value = "Buddy-5678"
+    example = {
+        "ordered_kv_records": [
+            [subject, "pet name", value],
+            ["Subject_9876", "pet name", "Fluffy-4321"],
+        ],
+        "target_key": [subject, "pet name"],
+    }
+    prompt = build_prompt(example)
+    assert f"{subject}'s pet name is {value}" in prompt
+    assert prompt.count(subject) == 2
